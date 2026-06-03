@@ -548,9 +548,9 @@ if(btnRemoverInstrumentosMassa) {
     });
 }
 
-if(btnAddTarget || btnAddTarefa) {
-    const targetBtn = btnAddTarefa;
-    targetBtn.addEventListener('click', () => {
+// CORREÇÃO DE SINTAXE AQUI: Removida a referência à variável inexistente que quebrava o script
+if (btnAddTarefa) {
+    btnAddTarefa.addEventListener('click', () => {
         const alunoId = seletorAlunoTarefa.value; const texto = txtNovaTarefa.value.trim(); const data = dateNovaTarefa.value;
         if(!alunoId || !texto || !data) return alert('Por favor, preencha a tarefa!');
         if(!tarefasAlunos[alunoId]) tarefasAlunos[alunoId] = [];
@@ -742,7 +742,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
     const ordemDasFases = inst.fases || [];
     const fasesAgrupadas = {};
     ordemDasFases.forEach(f => fasesAgrupadas[f] = []);
-    inst.topicos.forEach(t => { if(t && fasesAgrupadas[t.fase]) fasesAgrupadas[t.fase].push(t); });
+    inst.topicos.forEach(t => { if(t && fasesAgrupadas[t.fase]) fasesAgrapadas[t.fase].push(t); });
 
     ordemDasFases.forEach(nomeFase => {
         if(!fasesAgrupadas[nomeFase] || fasesAgrupadas[nomeFase].length === 0) return;
