@@ -14,6 +14,12 @@
         <h1>Gerenciamento <span>Premium</span></h1>
     </header>
     
+    <div style="margin: -10px 0 20px 0; display: flex; justify-content: flex-end;">
+        <button id="btn-salvar-geral" class="btn-acao" style="background: var(--cor-acento); color: var(--bg-principal); font-weight: 600; width: auto; padding: 12px 24px; gap: 8px; border-radius: 12px; box-shadow: 0 4px 15px rgba(255, 177, 0, 0.2);">
+            <span class="material-symbols-rounded">save</span> Salvar Alterações na Nuvem
+        </button>
+    </div>
+    
     <nav class="abas-container">
         <button class="aba-btn ativa" onclick="mudarAba('aba-aulas')" title="Aulas e Cronograma">
             <span class="material-symbols-rounded">analytics</span>
@@ -27,32 +33,33 @@
             <span class="material-symbols-rounded">architecture</span>
             Cursos
         </button>
-        <button class="aba-btn" onclick="mudarAba('aba-alunos')" title="Matrículas e Códigos">
-            <span class="material-symbols-rounded">group</span>
-            Alunos
+        <button class="aba-btn" onclick="mudarAba('aba-alunos')" title="Matricular e Códigos">
+            <span class="material-symbols-rounded">group_add</span>
+            Matrículas
         </button>
-        <button class="aba-btn" onclick="mudarAba('aba-remover')" title="Excluir Dados">
-            <span class="material-symbols-rounded">delete_sweep</span>
-            Limpar
+        <button class="aba-btn btn-aba-remover" onclick="mudarAba('aba-remover')" title="Zona de Exclusão">
+            <span class="material-symbols-rounded">delete_forever</span>
+            Limpeza
         </button>
     </nav>
 
     <div id="aba-aulas" class="conteudo-aba ativa">
         <div class="card-painel">
-            <label for="seletor-aluno" class="label-clean">Acessar Registro do Aluno</label>
+            <h3><span class="material-symbols-rounded">person</span>Selecione o Aluno</h3>
+            <label class="label-clean">Aluno ativo para exibição:</label>
             <select id="seletor-aluno">
-                <option value="">-- Selecione o Aluno --</option>
+                <option value="">-- Escolha um nome --</option>
             </select>
         </div>
 
-        <div id="area-cronograma" class="cronograma">
+        <div id="area-cronograma" class="cronograma" style="margin-top: 20px;">
             <div class="cabecalho-aluno">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <h3 id="nome-aluno-titulo" style="margin:0;">Aluno</h3>
+                    <h3 id="nome-aluno-titulo" style="margin:0;">Selecione um Aluno</h3>
                     
-                    <div id="bloco-status-mensalidade-admin" style="display: flex; align-items: center; gap: 8px;">
-                        <span id="label-mes-atual" class="label-clean" style="margin:0; font-weight:500;">Mês:</span>
-                        <button id="btn-alternar-pagamento" class="selo-mensalidade"></button>
+                    <div id="bloco-status-mensalidade-admin" style="display: none; align-items: center; gap: 8px; background: rgba(255,255,255,0.02); padding: 6px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04);">
+                        <span id="label-mes-atual" style="font-size: 12px; color: var(--cor-texto-secundario); font-weight: 500;">Mês:</span>
+                        <div id="btn-alternar-pagamento" class="selo-mensalidade pendente" style="cursor: pointer; user-select: none;"></div>
                     </div>
                 </div>
 
@@ -63,80 +70,84 @@
                     <span id="progresso-porcentagem">0%</span>
                 </div>
             </div>
+            
             <div id="fases-cronograma-container"></div>
         </div>
     </div>
 
     <div id="aba-tarefas" class="conteudo-aba">
         <div class="card-painel">
-            <h3><span class="material-symbols-rounded">edit_document</span>Passar Exercício Prático</h3>
-            <label class="label-clean">Aluno Alvo:</label>
-            <select id="seletor-aluno-tarefa" onchange="renderizarTarefasAdmin(this.value)">
-                <option value="">-- Escolha um aluno --</option>
+            <h3><span class="material-symbols-rounded">edit_note</span>Passar Dever de Casa</h3>
+            
+            <label class="label-clean">Para qual aluno?</label>
+            <select id="seletor-aluno-tarefa">
+                <option value="">-- Escolha um nome --</option>
             </select>
 
-            <div style="margin-top: 15px;">
-                <label class="label-clean">Instruções:</label>
-                <textarea id="nova-tarefa-texto" placeholder="Descreva os exercícios de hoje..." rows="3"></textarea>
+            <label class="label-clean" style="margin-top: 12px;">Descrição da Atividade:</label>
+            <input type="text" id="nova-tarefa-texto" placeholder="Ex: Praticar escala de Dó Maior com metrônomo a 80bpm">
 
-                <label class="label-clean" style="margin-top: 12px;">Prazo Limite:</label>
-                <input type="date" id="nova-tarefa-data">
+            <label class="label-clean" style="margin-top: 12px;">Data Limite para Entrega:</label>
+            <input type="date" id="nova-tarefa-data">
 
-                <button id="btn-adicionar-tarefa" class="btn-acao" style="width:100%; margin-top:15px;">
-                    <span class="material-symbols-rounded">send</span>Enviar ao Painel
-                </button>
-            </div>
+            <button id="btn-add-technologia" class="btn-acao" style="width: 100%; margin-top: 15px;">Enviar Atividade</button>
         </div>
 
-        <div class="card-painel">
-            <h3><span class="material-symbols-rounded">assignment_turned_in</span>Status das Atividades</h3>
-            <div id="lista-tarefas-admin-container">
-                <p class="dica-clean" style="color:var(--cor-texto-secundario); font-size:13px;">Selecione um aluno acima.</p>
-            </div>
+        <div class="card-painel" style="margin-top: 20px;">
+            <h3><span class="material-symbols-rounded">assignment_turned_in</span>Acompanhamento de Envios</h3>
+            <div id="lista-tarefas-admin-container"></div>
         </div>
     </div>
 
     <div id="aba-cadastro" class="conteudo-aba">
-        <div class="card-painel">
-            <h3><span class="material-symbols-rounded">add_box</span>Novo Curso / Matéria</h3>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="novo-instrumento-nome" placeholder="Ex: Piano Avançado">
-                <button id="btn-add-instrumento" class="btn-acao"><span class="material-symbols-rounded">add</span></button>
+        <div class="grid-duplo">
+            <div class="card-painel">
+                <h3><span class="material-symbols-rounded">library_music</span>1. Cadastrar Curso</h3>
+                <label class="label-clean">Nome do Curso / Instrumento:</label>
+                <input type="text" id="novo-instrumento-nome" placeholder="Ex: Piano Clássico">
+                <button id="btn-add-instrumento" class="btn-acao" style="width: 100%; margin-top: 15px;">Criar Curso</button>
+            </div>
+
+            <div class="card-painel">
+                <h3><span class="material-symbols-rounded">layers</span>2. Organizar Fases</h3>
+                <label class="label-clean">Vincular à qual Curso?</label>
+                <select id="seletor-instrumento-fase"></select>
+
+                <label class="label-clean" style="margin-top: 12px;">Nome da Nova Fase:</label>
+                <input type="text" id="nova-fase-nome" placeholder="Ex: Módulo 1: Postura e Dedilhado">
+                <button id="btn-add-fase" class="btn-acao" style="width: 100%; margin-top: 15px;">Adicionar Fase</button>
+
+                <ul id="lista-fases-atual" class="lista-customizada-fases" style="margin-top: 15px;"></ul>
             </div>
         </div>
 
-        <div class="card-painel">
-            <h3><span class="material-symbols-rounded">layers</span>Fases do Módulo</h3>
-            <label class="label-clean">Selecionar Curso:</label>
-            <select id="seletor-instrumento-fase" onchange="renderizarFasesAdmin(this.value)"></select>
-            <div style="display:flex; gap:10px; margin-top:10px; margin-bottom:12px;">
-                <input type="text" id="nova-fase-nome" placeholder="Ex: Módulo Inicial">
-                <button id="btn-add-fase" class="btn-acao"><span class="material-symbols-rounded">add</span></button>
+        <div class="card-painel" style="margin-top: 20px;">
+            <h3><span class="material-symbols-rounded">format_list_bulleted</span>3. Adicionar Tópicos das Fases</h3>
+            <div class="grid-duplo" style="gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label class="label-clean">Selecione o Curso:</label>
+                    <select id="seletor-instrumento-config"></select>
+                </div>
+                <div>
+                    <label class="label-clean">Selecione a Fase:</label>
+                    <select id="seletor-fase-topico"></select>
+                </div>
             </div>
-            <ul id="lista-fases-atual" class="lista-customizada-fases lista-arrastavel"></ul>
-        </div>
-
-        <div class="card-painel">
-            <h3><span class="material-symbols-rounded">format_list_bulleted</span>Tópicos / Aulas</h3>
-            <label class="label-clean">Curso:</label>
-            <select id="seletor-instrumento-config" onchange="atualizarSeletoresDeFaseDoCurso(this.value); renderizarTopicosAdmin(this.value);"></select>
-            
-            <label class="label-clean" style="margin-top:10px;">Fase Vinculada:</label>
-            <select id="seletor-fase-topico"></select>
-
-            <div style="display:flex; gap:10px; margin-top:10px; margin-bottom:12px;">
-                <input type="text" id="novo-topico-nome" placeholder="Ex: Teoria de Acordes">
-                <button id="btn-add-topico" class="btn-acao"><span class="material-symbols-rounded">add</span></button>
+            <label class="label-clean">Nome do Conteúdo/Exercício:</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="novo-topico-nome" placeholder="Ex: Exercício de Hanon Nº 1" style="flex:1;">
+                <button id="btn-add-topico" class="btn-acao" style="width: auto; padding: 0 25px;">Adicionar</button>
             </div>
-            <ul id="lista-topicos-atual" class="lista-customizada lista-arrastavel"></ul>
+
+            <div id="lista-topicos-atual" style="margin-top: 20px;"></div>
         </div>
     </div>
 
     <div id="aba-alunos" class="conteudo-aba">
-        <div class="card-painel">
-            <h3><span class="material-symbols-rounded">person_add</span>Matricular Aluno</h3>
-            <div class="input-group-vertical">
-                <label class="label-clean">Nome:</label>
+        <div class="grid-duplo">
+            <div class="card-painel">
+                <h3><span class="material-symbols-rounded">person_add</span>Nova Matrícula</h3>
+                <label class="label-clean">Nome Completo do Aluno:</label>
                 <input type="text" id="novo-aluno-nome" placeholder="Nome do aluno">
                 
                 <label class="label-clean" style="margin-top: 12px;">Vincular Curso:</label>
@@ -144,11 +155,11 @@
                 
                 <button id="btn-adicionar-aluno" class="btn-acao" style="width: 100%; margin-top: 15px;">Matricular</button>
             </div>
-        </div>
 
-        <div class="card-painel">
-            <h3><span class="material-symbols-rounded">key</span>Códigos de Acesso</h3>
-            <div id="tabela-codigos-alunos" class="lista-massa-container"></div>
+            <div class="card-painel">
+                <h3><span class="material-symbols-rounded">key</span>Códigos de Acesso</h3>
+                <div id="tabela-codigos-alunos" class="lista-massa-container"></div>
+            </div>
         </div>
     </div>
 
@@ -159,7 +170,7 @@
             <button id="btn-remover-instrumentos-massa" class="btn-deletar-massa">Remover Selecionados</button>
         </div>
 
-        <div class="card-painel painel-perigo">
+        <div class="card-painel painel-perigo" style="margin-top: 20px;">
             <h3><span class="material-symbols-rounded">person_remove</span>Remover Alunos</h3>
             <div id="lista-alunos-exclusao" class="lista-massa-container"></div>
             <button id="btn-remover-alunos-massa" class="btn-deletar-massa">Remover Selecionados</button>
@@ -167,6 +178,10 @@
     </div>
 </div>
 
+<script>
+    // Define explicitamente que este painel não é a página do aluno
+    window.PAGINA_ALUNO = false;
+</script>
 <script src="script.js"></script>
 </body>
 </html>
