@@ -15,13 +15,15 @@ const tagMensalidadeAluno = document.getElementById('tag-mensalidade-aluno');
 
 const inputNovoInstrumento = document.getElementById('novo-instrumento-nome');
 const btnAddInstrumento = document.getElementById('btn-add-instrumento');
+const seletorInstrumentoFase = document.getElementById('seletor-instrumento-fase');
 const inputNovaFase = document.getElementById('nova-fase-nome');
 const btnAddFase = document.getElementById('btn-add-fase');
+const listaFasesAtual = document.getElementById('lista-fases-atual');
 const seletorInstrumentoConfig = document.getElementById('seletor-instrumento-config');
-const listaFasesUnificada = document.getElementById('lista-fases-unificada');
-const blocoConstrutorFases = document.getElementById('bloco-construtor-fases');
-const msgSemCurso = document.getElementById('msg-sem-curso');
-
+const seletorFaseTopico = document.getElementById('seletor-fase-topico');
+const inputNovoTopico = document.getElementById('novo-topico-nome');
+const btnAddTopico = document.getElementById('btn-add-topico');
+const listaTopicosAtual = document.getElementById('lista-topicos-atual'); 
 const inputNovoAlunoNome = document.getElementById('novo-aluno-nome');
 const seletorInstrumentoAluno = document.getElementById('seletor-instrumento-aluno');
 const btnAdicionarAluno = document.getElementById('btn-adicionar-aluno');
@@ -37,7 +39,7 @@ const btnAddTarefa = document.getElementById('btn-add-technologia');
 const listaTarefasAdminContainer = document.getElementById('lista-tarefas-admin-container');
 const listaTarefasAlunoContainer = document.getElementById('lista-tarefas-aluno-container');
 
-// Mapeamento do elemento de persistência manual
+// Mapeamento do novo elemento de persistência manual
 const btnSalvarGeral = document.getElementById('btn-salvar-geral');
 
 const inputCodigoAluno = document.getElementById('codigo-aluno-input');
@@ -121,7 +123,7 @@ function recalcularEFatiazarInterfaceCompleta() {
     } else if (!window.PAGINA_ALUNO) {
         const cursoSelecionado = seletorInstrumentoConfig ? seletorInstrumentoConfig.value : "";
         if(cursoSelecionado) {
-            renderizarEstruturaUnificadaCurso(cursoSelecionado);
+            renderizarEstruturaCursoComTopicosAninhados(cursoSelecionado);
         }
 
         const alunoSelecionado = seletorAluno ? seletorAluno.value : "";
@@ -138,6 +140,7 @@ function recalcularEFatiazarInterfaceCompleta() {
 
 // CONTROLE SELETIVO DE SESSÃO: Sincronização contínua apenas na ponta do Aluno
 function escutarMudancasNaNuvem() {
+    // Se for o painel administrativo do professor, bloqueia loops paralelos para preservar modificações em andamento
     if (!window.PAGINA_ALUNO) return;
 
     setInterval(async () => {
@@ -157,7 +160,7 @@ function escutarMudancasNaNuvem() {
         } catch (erro) {
             console.error("Erro na sincronização em tempo real do aluno:", erro);
         }
-    }, 3000);
+    }, 3000); // Consulta otimizada a cada 3 segundos na ponta do Aluno
 }
 
 function mudarAba(idAba) {
@@ -187,14 +190,6 @@ function atualizarInterfaceGeral() {
             const opt = document.createElement('option'); opt.value = inst.id; opt.textContent = inst.nome; seletorInstrumentoConfig.appendChild(opt);
         });
         seletorInstrumentoConfig.value = valorCursoAtual;
-        
-        if (valorCursoAtual) {
-            if (blocoConstrutorFases) blocoConstrutorFases.style.display = 'block';
-            if (msgSemCurso) msgSemCurso.style.display = 'none';
-        } else {
-            if (blocoConstrutorFases) blocoConstrutorFases.style.display = 'none';
-            if (msgSemCurso) msgSemCurso.style.display = 'block';
-        }
     }
     
     if (seletorInstrumentoAluno) {
@@ -202,6 +197,15 @@ function atualizarInterfaceGeral() {
         listaInstrumentos.forEach(inst => {
             const opt = document.createElement('option'); opt.value = inst.id; opt.textContent = inst.nome; seletorInstrumentoAluno.appendChild(opt);
         });
+    }
+    
+    if (seletorInstrumentoFase) {
+        const valorFaseAtual = seletorInstrumentoFase.value;
+        seletorInstrumentoFase.innerHTML = '<option value="">-- Selecione o Curso --</option>';
+        listaInstrumentos.forEach(inst => {
+            const opt = document.createElement('option'); opt.value = inst.id; opt.textContent = inst.nome; seletorInstrumentoFase.appendChild(opt);
+        });
+        seletorInstrumentoFase.value = valorFaseAtual;
     }
 
     if (seletorAluno) {
@@ -295,183 +299,61 @@ function editarAlunoAdmin(alunoId) {
     }
 }
 
-// CONSTRUTOR DINÂMICO E UNIFICADO: FASES + TÓPICOS ANINHADOS
-if (seletorInstrumentoConfig) {
-    seletorInstrumentoConfig.addEventListener('change', function() {
-        const idCurso = this.value;
-        if(idCurso) {
-            blocoConstrutorFases.style.display = 'block';
-            msgSemCurso.style.display = 'none';
-            renderizarEstruturaUnificadaCurso(idCurso);
-        } else {
-            blocoConstrutorFases.style.display = 'none';
-            msgSemCurso.style.display = 'block';
-        }
-    });
-}
-
 if (btnAddFase) {
     btnAddFase.addEventListener('click', () => {
-        const instId = seletorInstrumentoConfig.value; const nomeFase = inputNovaFase.value.trim();
-        if(!instId || !nomeFase) return alert('Por favor, digite o nome da fase.');
+        const instId = seletorInstrumentoFase.value; const nomeFase = inputNovaFase.value.trim();
+        if(!instId || !nomeFase) return alert('Selecione o curso e digite a fase.');
         const inst = listaInstrumentos.find(i => i.id === instId);
         if(!inst.fases) inst.fases = [];
-        if(inst.fases.includes(nomeFase)) return alert('Esta fase já existe neste curso.');
+        if(inst.fases.includes(nomeFase)) return alert('Esta fase já existe.');
         inst.fases.push(nomeFase);
         inputNovaFase.value = ''; 
-        renderizarEstruturaUnificadaCurso(instId);
+        renderizarFasesAdmin(instId);
     });
 }
 
-function renderizarEstruturaUnificadaCurso(instId) {
-    if(!listaFasesUnificada) return;
-    listaFasesUnificada.innerHTML = '';
+if (seletorInstrumentoFase) {
+    seletorInstrumentoFase.addEventListener('change', function() {
+        renderizarFasesAdmin(this.value);
+    });
+}
 
+if (seletorInstrumentoConfig) {
+    seletorInstrumentoConfig.addEventListener('change', function() {
+        atualizarSeletoresDeFaseDoCurso(this.value);
+        renderizarEstruturaCursoComTopicosAninhados(this.value);
+    });
+}
+
+function renderizarFasesAdmin(instId) {
+    if(!listaFasesAtual) return; listaFasesAtual.innerHTML = '';
     const inst = listaInstrumentos.find(i => i.id === instId);
-    if(!inst) return;
-
-    const ordemDasFases = inst.fases || [];
-    const topicosDoCurso = inst.topicos || [];
-
-    if(ordemDasFases.length === 0) {
-        listaFasesUnificada.innerHTML = '<p class="label-clean" style="text-align:center; padding: 20px 0;">Nenhuma fase criada neste curso ainda.</p>';
-        return;
-    }
-
-    ordemDasFases.forEach((nomeFase) => {
-        const itemFaseLI = document.createElement('li');
-        itemFaseLI.setAttribute('data-fase-id', nomeFase);
-        itemFaseLI.style.display = 'block';
-        itemFaseLI.style.background = 'var(--bg-card)';
-        itemFaseLI.style.border = '1px solid rgba(255,255,255,0.04)';
-        itemFaseLI.style.padding = '16px';
-        itemFaseLI.style.borderRadius = '14px';
-        itemFaseLI.style.marginBottom = '15px';
-        itemFaseLI.style.cursor = 'default';
-
-        // Cabeçalho Controle da Fase
-        const cabecalhoFase = document.createElement('div');
-        cabecalhoFase.style.display = 'flex';
-        cabecalhoFase.style.justifyContent = 'space-between';
-        cabecalhoFase.style.alignItems = 'center';
-        cabecalhoFase.style.marginBottom = '12px';
-
-        cabecalhoFase.innerHTML = `
-            <span style="font-weight:600; color:var(--cor-acento); font-size:14px; cursor:grab;" class="handle-fase">☰ FASE: ${nomeFase}</span>
-            <div style="display:flex; gap:6px;">
-                <button class="btn-deletar-pequeno" style="color:var(--cor-acento); background:transparent;" onclick="editarFaseUnificada('${instId}', '${nomeFase}')">Editar</button>
-                <button class="btn-deletar-pequeno" onclick="deletarFaseUnificada('${instId}', '${nomeFase}')">Excluir</button>
+    if(!inst || !inst.fases) return;
+    
+    inst.fases.forEach((fase) => {
+        listaFasesAtual.innerHTML += `
+        <li data-id="${fase}" style="cursor: grab;">
+            <span>☰ ${fase}</span> 
+            <div>
+                <button class="btn-deletar-pequeno" style="color:var(--cor-acento); background:transparent;" onclick="editarFaseAdmin('${instId}', '${fase}')">Editar</button>
+                <button class="btn-deletar-pequeno" onclick="deletarFaseAdmin('${instId}', '${fase}')">Excluir</button>
             </div>
-        `;
-        itemFaseLI.appendChild(cabecalhoFase);
-
-        // Sublista interna de Tópicos
-        const subListaTopicosUL = document.createElement('ul');
-        subListaTopicosUL.style.listStyle = 'none';
-        subListaTopicosUL.style.padding = '0';
-        subListaTopicosUL.style.margin = '10px 0';
-        subListaTopicosUL.setAttribute('data-fase-vinculo', nomeFase);
-
-        topicosDoCurso.forEach((topico) => {
-            if(topico && topico.fase === nomeFase) {
-                const itemTopicoLI = document.createElement('li');
-                itemTopicoLI.setAttribute('data-topico-nome', topico.nome);
-                itemTopicoLI.style.background = 'var(--bg-principal)';
-                itemTopicoLI.style.padding = '10px 14px';
-                itemTopicoLI.style.borderRadius = '8px';
-                itemTopicoLI.style.marginBottom = '6px';
-                itemTopicoLI.style.display = 'flex';
-                itemTopicoLI.style.justifyContent = 'space-between';
-                itemTopicoLI.style.alignItems = 'center';
-                itemTopicoLI.style.border = '1px solid rgba(255,255,255,0.02)';
-
-                itemTopicoLI.innerHTML = `
-                    <span style="font-size:13px; cursor:grab;">☰ ${topico.nome}</span>
-                    <div style="display:flex; gap:4px;">
-                        <button class="btn-deletar-pequeno" style="color:var(--cor-acento); background:transparent; padding:2px 6px; font-size:11px;" onclick="editarTopicoUnificado('${instId}', '${topico.nome}', '${nomeFase}')">Editar</button>
-                        <button class="btn-deletar-pequeno" style="padding:2px 6px; font-size:11px;" onclick="deletarTopicoUnificado('${instId}', '${topico.nome}', '${nomeFase}')">Excluir</button>
-                    </div>
-                `;
-                subListaTopicosUL.appendChild(itemTopicoLI);
-            }
-        });
-
-        if(subListaTopicosUL.children.length === 0) {
-            subListaTopicosUL.innerHTML = '<p class="label-clean" style="font-size:12px; padding:6px; text-align:center; border: 1px dashed rgba(255,255,255,0.03); border-radius:6px;">Nenhum conteúdo/tópico nesta fase.</p>';
-        }
-
-        itemFaseLI.appendChild(subListaTopicosUL);
-
-        // Formulário Compacto para Inserir Tópico Direto na Fase
-        const containerAcaoRapida = document.createElement('div');
-        containerAcaoRapida.style.display = 'flex';
-        containerAcaoRapida.style.gap = '8px';
-        containerAcaoRapida.style.marginTop = '10px';
-
-        const inputRapido = document.createElement('input');
-        inputRapido.type = 'text';
-        inputRapido.placeholder = 'Adicionar tópico nesta fase...';
-        inputRapido.style.fontSize = '12px';
-        inputRapido.style.padding = '8px 12px';
-        inputRapido.style.flex = '1';
-
-        const btnRapido = document.createElement('button');
-        btnRapido.className = 'btn-acao';
-        btnRapido.textContent = '+ Tópico';
-        btnRapido.style.width = 'auto';
-        btnRapido.style.padding = '0 14px';
-        btnRapido.style.fontSize = '12px';
-
-        btnRapido.onclick = () => {
-            const textoTopico = inputRapido.value.trim();
-            if(!textoTopico) return;
-            if(!inst.topicos) inst.topicos = [];
-            inst.topicos.push({ nome: textoTopico, fase: nomeFase });
-            inputRapido.value = '';
-            renderizarEstruturaUnificadaCurso(instId);
-        };
-
-        containerAcaoRapida.appendChild(inputRapido);
-        containerAcaoRapida.appendChild(btnRapido);
-        itemFaseLI.appendChild(containerAcaoRapida);
-
-        listaFasesUnificada.appendChild(itemFaseLI);
-
-        // Sortable nos Tópicos (Interno)
-        if(typeof Sortable !== 'undefined' && subListaTopicosUL.querySelectorAll('[data-topico-nome]').length > 1) {
-            Sortable.create(subListaTopicosUL, {
-                animation: 150,
-                handle: 'span',
-                onEnd: function() {
-                    const nomesReordenados = Array.from(subListaTopicosUL.children)
-                        .map(li => li.getAttribute('data-topico-nome'))
-                        .filter(n => n !== null);
-
-                    const topicosOutrasFases = inst.topicos.filter(t => t && t.fase !== nomeFase);
-                    const topicosDestaFaseNovos = nomesReordenados.map(nome => {
-                        return { nome: nome, fase: nomeFase };
-                    });
-
-                    inst.topicos = [...topicosOutrasFases, ...topicosDestaFaseNovos];
-                }
-            });
-        }
+        </li>`;
     });
 
-    // Sortable nas Fases (Geral)
     if(typeof Sortable !== 'undefined') {
-        Sortable.create(listaFasesUnificada, {
+        Sortable.create(listaFasesAtual, {
             animation: 150,
-            handle: '.handle-fase',
             onEnd: function () {
-                const novaOrdemFases = Array.from(listaFasesUnificada.children).map(li => li.getAttribute('data-fase-id')).filter(f => f !== null);
-                inst.fases = novaOrdemFases;
+                const novaOrdem = Array.from(listaFasesAtual.children).map(li => li.getAttribute('data-id'));
+                inst.fases = novaOrdem; 
+                recalcularEFatiazarInterfaceCompleta();
             }
         });
     }
 }
 
-function editarFaseUnificada(instId, faseAntiga) {
+function editarFaseAdmin(instId, faseAntiga) {
     const inst = listaInstrumentos.find(i => i.id === instId);
     const index = inst.fases.indexOf(faseAntiga);
     if(index === -1) return;
@@ -482,20 +364,117 @@ function editarFaseUnificada(instId, faseAntiga) {
         if(inst.topicos) {
             inst.topicos.forEach(t => { if(t && t.fase === faseAntiga) t.fase = novaFase.trim(); });
         }
-        renderizarEstruturaUnificadaCurso(instId);
+        renderizarFasesAdmin(instId);
+        recalcularEFatiazarInterfaceCompleta();
     }
 }
 
-function deletarFaseUnificada(instId, faseNome) {
-    if(confirm(`Tem certeza que deseja excluir a fase "${faseNome}" e todos os seus tópicos internos?`)) {
-        const inst = listaInstrumentos.find(i => i.id === instId);
-        inst.fases = inst.fases.filter(f => f !== faseNome);
-        if(inst.topicos) inst.topicos = inst.topicos.filter(t => t && t.fase !== faseNome);
-        renderizarEstruturaUnificadaCurso(instId);
-    }
+function deletarFaseAdmin(instId, faseNome) {
+    const inst = listaInstrumentos.find(i => i.id === instId);
+    inst.fases = inst.fases.filter(f => f !== faseNome);
+    if(inst.topicos) inst.topicos = inst.topicos.filter(t => t && t.fase !== faseNome);
+    renderizarFasesAdmin(instId);
+    recalcularEFatiazarInterfaceCompleta();
 }
 
-function editarTopicoUnificado(instId, nomeAntigo, faseNome) {
+function atualizarSeletoresDeFaseDoCurso(instId) {
+    if(!seletorFaseTopico) return; seletorFaseTopico.innerHTML = '';
+    const inst = listaInstrumentos.find(i => i.id === instId);
+    if(!inst || !inst.fases) return;
+    inst.fases.forEach(f => { seletorFaseTopico.innerHTML += `<option value="${f}">${f}</option>`; });
+}
+
+function renderizarEstruturaCursoComTopicosAninhados(instId) {
+    const containerConfig = document.getElementById('lista-topicos-atual');
+    if(!containerConfig) return;
+    containerConfig.innerHTML = '';
+
+    const inst = listaInstrumentos.find(i => i.id === instId);
+    if(!inst) return;
+
+    const ordemDasFases = inst.fases || [];
+    const topicosDoCurso = inst.topicos || [];
+
+    if(ordemDasFases.length === 0) {
+        containerConfig.innerHTML = '<p class="label-clean">Cadastre primeiro as fases desse curso na aba ao lado.</p>';
+        return;
+    }
+
+    ordemDasFases.forEach((nomeFase) => {
+        const blocoFase = document.createElement('div');
+        blocoFase.className = 'fase-bloco-config';
+        blocoFase.style.border = '1px dashed var(--border)';
+        blocoFase.style.padding = '15px';
+        blocoFase.style.borderRadius = '10px';
+        blocoFase.style.marginBottom = '15px';
+        blocoFase.style.backgroundColor = 'rgba(255,255,255,0.01)';
+
+        blocoFase.innerHTML = `<div style="font-weight:bold; color:var(--cor-acento); margin-bottom:10px; text-transform:uppercase; font-size:13px; letter-spacing:1px;">Fase: ${nomeFase}</div>`;
+        
+        const subListaUL = document.createElement('ul');
+        subListaUL.style.listStyle = 'none';
+        subListaUL.style.padding = '0';
+        subListaUL.style.margin = '0';
+        subListaUL.setAttribute('data-fase-nome', nomeFase);
+
+        topicosDoCurso.forEach((topico) => {
+            if(topico && topico.fase === nomeFase) {
+                const itemLI = document.createElement('li');
+                itemLI.className = 'item-tarefa';
+                itemLI.setAttribute('data-topico-nome', topico.nome);
+                itemLI.style.cursor = 'grab';
+                itemLI.style.display = 'flex';
+                itemLI.style.justifyContent = 'space-between';
+                itemLI.style.alignItems = 'center';
+                itemLI.style.padding = '10px';
+                itemLI.style.marginBottom = '6px';
+                itemLI.style.backgroundColor = 'var(--bg-principal)';
+
+                itemLI.innerHTML = `
+                    <span>☰ ${topico.nome}</span>
+                    <div>
+                        <button class="btn-deletar-pequeno" style="color:var(--cor-acento); background:transparent; margin-right:8px;" onclick="editarTopicoAninhado('${instId}', '${topico.nome}', '${nomeFase}')">Editar</button>
+                        <button class="btn-deletar-pequeno" onclick="deletarTopicoAninhado('${instId}', '${topico.nome}', '${nomeFase}')">Excluir</button>
+                    </div>
+                `;
+                subListaUL.appendChild(itemLI);
+            }
+        });
+
+        if(subListaUL.children.length === 0) {
+            subListaUL.innerHTML = '<p class="label-clean" style="font-size:12px; padding: 5px 0;">Nenhum tópico nesta fase.</p>';
+        }
+
+        blocoFase.appendChild(subListaUL);
+        containerConfig.appendChild(blocoFase);
+
+        if(typeof Sortable !== 'undefined' && subListaUL.children.length > 1) {
+            Sortable.create(subListaUL, {
+                animation: 150,
+                handle: 'span',
+                onEnd: function() {
+                    const nomesReordenados = Array.from(subListaUL.children)
+                        .map(li => li.getAttribute('data-topico-nome'))
+                        .filter(nome => nome !== null);
+
+                    const topicosOutrasFases = inst.topicos.filter(t => t && t.fase !== nomeFase);
+                    const topicosDestaFaseNovos = nomesReordenados.map(nome => {
+                        return { nome: nome, fase: nomeFase };
+                    });
+
+                    inst.topicos = [...topicosOutrasFases, ...topicosDestaFaseNovos];
+                    recalcularEFatiazarInterfaceCompleta();
+                }
+            });
+        }
+    });
+}
+
+function renderizarTopicosAdmin(instId) {
+    renderizarEstruturaCursoComTopicosAninhados(instId);
+}
+
+function editarTopicoAninhado(instId, nomeAntigo, faseNome) {
     const inst = listaInstrumentos.find(i => i.id === instId);
     if(!inst || !inst.topicos) return;
     const topico = inst.topicos.find(t => t && t.nome === nomeAntigo && t.fase === faseNome);
@@ -504,15 +483,27 @@ function editarTopicoUnificado(instId, nomeAntigo, faseNome) {
     const novoNome = prompt("Digite o novo nome do tópico:", topico.nome);
     if(novoNome && novoNome.trim() !== "") {
         topico.nome = novoNome.trim();
-        renderizarEstruturaUnificadaCurso(instId);
+        recalcularEFatiazarInterfaceCompleta();
     }
 }
 
-function deletarTopicoUnificado(instId, nomeTopico, faseNome) {
+function deletarTopicoAninhado(instId, nomeTopico, faseNome) {
     const inst = listaInstrumentos.find(i => i.id === instId);
     if(!inst || !inst.topicos) return;
     inst.topicos = inst.topicos.filter(t => t && !(t.nome === nomeTopico && t.fase === faseNome));
-    renderizarEstruturaUnificadaCurso(instId);
+    recalcularEFatiazarInterfaceCompleta();
+}
+
+if(btnAddTopico) {
+    btnAddTopico.addEventListener('click', () => {
+        const id = seletorInstrumentoConfig.value; const nome = inputNovoTopico.value.trim(); const fase = seletorFaseTopico.value;
+        if(!id || !nome || !fase) return alert('Escolha os dados completando os seletores!');
+        const inst = listaInstrumentos.find(i => i.id === id);
+        if(!inst.topicos) inst.topicos = [];
+        inst.topicos.push({ nome: nome, fase: fase });
+        inputNovoTopico.value = ''; 
+        recalcularEFatiazarInterfaceCompleta();
+    });
 }
 
 if(btnAdicionarAluno) {
@@ -548,8 +539,7 @@ if(btnRemoverInstrumentosMassa) {
     });
 }
 
-// CORREÇÃO DE SINTAXE AQUI: Removida a referência à variável inexistente que quebrava o script
-if (btnAddTarefa) {
+if(btnAddTarefa) {
     btnAddTarefa.addEventListener('click', () => {
         const alunoId = seletorAlunoTarefa.value; const texto = txtNovaTarefa.value.trim(); const data = dateNovaTarefa.value;
         if(!alunoId || !texto || !data) return alert('Por favor, preencha a tarefa!');
@@ -742,7 +732,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
     const ordemDasFases = inst.fases || [];
     const fasesAgrupadas = {};
     ordemDasFases.forEach(f => fasesAgrupadas[f] = []);
-    inst.topicos.forEach(t => { if(t && fasesAgrupadas[t.fase]) fasesAgrapadas[t.fase].push(t); });
+    inst.topicos.forEach(t => { if(t && fasesAgrupadas[t.fase]) fasesAgrupadas[t.fase].push(t); });
 
     ordemDasFases.forEach(nomeFase => {
         if(!fasesAgrupadas[nomeFase] || fasesAgrupadas[nomeFase].length === 0) return;
@@ -806,6 +796,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
 
 // Inicializador
 window.onload = async function() {
+    // Escuta de clique para o botão manual de Salvamento Global (Apenas se o elemento existir no HTML do Admin)
     if (btnSalvarGeral) {
         btnSalvarGeral.addEventListener('click', salvarNaNuvem);
     }
