@@ -54,7 +54,7 @@ let tarefasAlunos = {};
 let mensalidadesAlunos = {};
 let alunoLogadoId = null;
 
-// Trava de segurança robusta contra concorrência (usada no drag e no clique dos checkboxes)
+// Trava contra concorrência melhorada (bloqueia requisições de leitura enquanto salva)
 let bloqueiaAtualizacaoPorArrasto = false;
 
 function obterChaveMesAtual() {
@@ -66,8 +66,9 @@ function obterNomeMesExibicao() {
     return MESES_ANO[new Date().getMonth()];
 }
 
-// Envia dados modificados ao Firebase
+// Envia dados modificados ao Firebase travando o Realtime temporariamente
 async function salvarNaNuvem() {
+    bloqueiaAtualizacaoPorArrasto = true; // Força o bloqueio ao salvar
     const dados = { 
         instrumentos: listaInstrumentos, 
         alunos: listaAlunos, 
@@ -79,6 +80,9 @@ async function salvarNaNuvem() {
         await fetch(`${DB_URL}.json`, { method: 'PUT', body: JSON.stringify(dados) });
     } catch (e) {
         console.error("Erro ao salvar dados no Firebase:", e);
+    } finally {
+        // Libera a sincronização apenas após o término do salvamento com uma folga de 800ms
+        setTimeout(() => { bloqueiaAtualizacaoPorArrasto = false; }, 800);
     }
 }
 
@@ -89,15 +93,12 @@ function recalcularEFatiazarInterfaceCompleta() {
     const atualTexto = document.getElementById('progresso-porcentagem');
     const atualTitulo = document.getElementById('nome-aluno-titulo');
 
-    // 1. Atualiza listas internas, seletores e as listas de remoção em massa
     atualizarInterfaceGeral();
 
-    // 2. Se for a página do aluno, renderiza a visão dele
     if(window.PAGINA_ALUNO && alunoLogadoId) {
         renderizarCronogramaAlunoId(alunoLogadoId, atualFasesContainer, atualBarra, atualTexto, atualTitulo);
         renderizarTarefasAluno(alunoLogadoId);
     } else if (!window.PAGINA_ALUNO) {
-        // 3. Se for o painel admin, updates gerais
         const cursoSelecionado = seletorInstrumentoConfig ? seletorInstrumentoConfig.value : "";
         if(cursoSelecionado) {
             renderizarEstruturaCursoComTopicosAninhados(cursoSelecionado);
@@ -115,15 +116,16 @@ function recalcularEFatiazarInterfaceCompleta() {
     }
 }
 
-// Sincronização Ativa em Tempo Real
+// Sincronização Ativa em Tempo Real Ajustada
 function escutarMudancasNaNuvem() {
     setInterval(async () => {
-        if (bloqueiaAtualizacaoPorArrasto) return;
+        if (bloqueiaAtualizacaoPorArrasto) return; // Se estiver salvando, não puxa dados antigos
 
         try {
             const resposta = await fetch(`${DB_URL}.json`);
             const dados = await resposta.json();
             
+            // Dupla checagem da trava para evitar sobrescrever dados no meio de um processo assíncrono
             if(dados && !bloqueiaAtualizacaoPorArrasto) {
                 listaInstrumentos = dados.instrumentos || [];
                 listaAlunos = dados.alunos || [];
@@ -326,8 +328,6 @@ function renderizarFasesAdmin(instId) {
                 
                 await salvarNaNuvem();
                 recalcularEFatiazarInterfaceCompleta();
-                
-                setTimeout(() => { bloqueiaAtualizacaoPorArrasto = false; }, 3500);
             }
         });
     }
@@ -454,10 +454,6 @@ function renderizarEstruturaCursoComTopicosAninhados(instId) {
                     
                     await salvarNaNuvem();
                     recalcularEFatiazarInterfaceCompleta();
-                    
-                    setTimeout(() => {
-                        bloqueiaAtualizacaoPorArrasto = false;
-                    }, 3500);
                 }
             });
         }
@@ -736,7 +732,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
         });
     });
 
-    // CORREÇÃO: Evita travar o clique da checkbox se a trava de concorrência estiver ativa temporariamente
+    // Se o estado não mudou e não estamos salvando nada, evita re-renderizar à toa
     if (container.dataset.estadoAtual === estadoAtualString && !bloqueiaAtualizacaoPorArrasto) {
         const pct = calcularProgresso(alunoId, inst.topicos);
         if(barra) barra.style.width = pct + '%'; 
@@ -764,9 +760,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
 
             if (!window.PAGINA_ALUNO) {
                 cb.addEventListener('change', async function() {
-                    // CORREÇÃO CRUCIAL: Trava temporariamente o cronômetro automático do Firebase
-                    // para dar tempo de salvar o novo estado sem que a tela seja redefinida com dados antigos
-                    bloqueiaAtualizacaoPorArrasto = true;
+                    bloqueiaAtualizacaoPorArrasto = true; // Trava o Realtime imediatamente
 
                     progressoAlunos[chaveSalva] = this.checked;
                     span.className = this.checked ? 'concluido' : '';
@@ -775,18 +769,13 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
                     if(barra) barra.style.width = pct + '%'; 
                     if(texto) texto.innerText = pct + '%';
                     
-                    await salvarNaNuvem();
-                    
-                    // Atualiza a string local do estado para alinhar a interface
+                    // Modifica a string do dataset para casar perfeitamente com o novo estado
                     container.dataset.estadoAtual = container.dataset.estadoAtual.replace(
                         `${chaveSalva}:${!this.checked}`, 
                         `${chaveSalva}:${this.checked}`
                     );
 
-                    // Libera o cronômetro automático após 3 segundos
-                    setTimeout(() => {
-                        bloqueiaAtualizacaoPorArrasto = false;
-                    }, 3000);
+                    await salvarNaNuvem();
                 });
             }
 
@@ -800,7 +789,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
     if(texto) texto.innerText = pctInicial + '%';
 }
 
-// Inicializador
+// Inicializador Corrigido
 window.onload = async function() {
     try {
         const resposta = await fetch(`${DB_URL}.json`);
