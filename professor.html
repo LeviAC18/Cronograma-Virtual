@@ -46,7 +46,7 @@
     <div id="aba-aulas" class="conteudo-aba ativa">
         <div class="card-painel">
             <h3><span class="material-symbols-rounded">person</span>Selecione o Aluno</h3>
-            <label class="label-clean">Aluno ativo para exibição:</label>
+            <label class="label-clean">Aluno active para exibição:</label>
             <select id="seletor-aluno">
                 <option value="">-- Escolha um nome --</option>
             </select>
@@ -101,7 +101,7 @@
 
     <div id="aba-cadastro" class="conteudo-aba">
         <div class="grid-duplo">
-            <div class="card-painel">
+            <div class="card-painel" style="height: fit-content;">
                 <h3><span class="material-symbols-rounded">library_music</span>1. Cadastrar Curso</h3>
                 <label class="label-clean">Nome do Curso / Instrumento:</label>
                 <input type="text" id="novo-instrumento-nome" placeholder="Ex: Piano Clássico">
@@ -109,37 +109,30 @@
             </div>
 
             <div class="card-painel">
-                <h3><span class="material-symbols-rounded">layers</span>2. Organizar Fases</h3>
-                <label class="label-clean">Vincular à qual Curso?</label>
-                <select id="seletor-instrumento-fase"></select>
+                <h3><span class="material-symbols-rounded">schema</span>2. Gerenciar Fases e Tópicos</h3>
+                
+                <label class="label-clean">Selecione o Curso para Editar:</label>
+                <select id="seletor-instrumento-config">
+                    <option value="">-- Selecione o Curso --</option>
+                </select>
 
-                <label class="label-clean" style="margin-top: 12px;">Nome da Nova Fase:</label>
-                <input type="text" id="nova-fase-nome" placeholder="Ex: Módulo 1: Postura e Dedilhado">
-                <button id="btn-add-fase" class="btn-acao" style="width: 100%; margin-top: 15px;">Adicionar Fase</button>
+                <div id="bloco-construtor-fases" style="margin-top: 20px; display: none; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 20px;">
+                    <label class="label-clean">Criar Nova Fase neste Curso:</label>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <input type="text" id="nova-fase-nome" placeholder="Ex: Módulo 1: Fundamentos" style="flex:1;">
+                        <button id="btn-add-fase" class="btn-acao" style="width: auto; padding: 0 20px;">+ Fase</button>
+                    </div>
 
-                <ul id="lista-fases-atual" class="lista-customizada-fases" style="margin-top: 15px;"></ul>
-            </div>
-        </div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 15px; color: var(--cor-texto-secundario); font-size: 12px;">
+                        <span class="material-symbols-rounded" style="font-size:16px;">info</span>
+                        <span>Arraste as fases ou os tópicos para reordená-los livremente.</span>
+                    </div>
 
-        <div class="card-painel" style="margin-top: 20px;">
-            <h3><span class="material-symbols-rounded">format_list_bulleted</span>3. Adicionar Tópicos das Fases</h3>
-            <div class="grid-duplo" style="gap: 15px; margin-bottom: 15px;">
-                <div>
-                    <label class="label-clean">Selecione o Curso:</label>
-                    <select id="seletor-instrumento-config"></select>
+                    <ul id="lista-fases-unificada" class="lista-customizada-fases"></ul>
                 </div>
-                <div>
-                    <label class="label-clean">Selecione a Fase:</label>
-                    <select id="seletor-fase-topico"></select>
-                </div>
+                
+                <p id="msg-sem-curso" class="label-clean" style="margin-top: 20px; text-align: center;">Selecione um curso acima para gerenciar sua grade didática.</p>
             </div>
-            <label class="label-clean">Nome do Conteúdo/Exercício:</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="novo-topico-nome" placeholder="Ex: Exercício de Hanon Nº 1" style="flex:1;">
-                <button id="btn-add-topico" class="btn-acao" style="width: auto; padding: 0 25px;">Adicionar</button>
-            </div>
-
-            <div id="lista-topicos-atual" style="margin-top: 20px;"></div>
         </div>
     </div>
 
@@ -179,7 +172,6 @@
 </div>
 
 <script>
-    // Define explicitamente que este painel não é a página do aluno
     window.PAGINA_ALUNO = false;
 </script>
 <script src="script.js"></script>
