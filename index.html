@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Área do Aluno - Premium</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+    <header class="app-header">
+        <h1>Meu Espaço <span>Estudos</span></h1>
+    </header>
+    
+    <div id="bloco-login-aluno" class="card-painel">
+        <h3><span class="material-symbols-rounded">lock</span>Acesso Privado</h3>
+        <label class="label-clean">Código de Acesso:</label>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="codigo-aluno-input" placeholder="Ex: M102" style="text-transform: uppercase; text-align:center; font-weight:600; letter-spacing:1px;">
+            <button id="btn-entrar-aluno" class="btn-acao"><span class="material-symbols-rounded">login</span></button>
+        </div>
+        <p id="erro-login-aluno" style="color: var(--cor-perigo); font-size: 12px; margin-top: 10px; display: none;">Código incorreto.</p>
+    </div>
+
+    <div id="conteúdo-aluno-autenticado" style="display: none;">
+        
+        <nav class="abas-container">
+            <button id="btn-aba-cronograma" class="aba-btn ativa" onclick="mudarAbaAluno('secao-cronograma')">
+                <span class="material-symbols-rounded">widgets</span>Cronograma
+            </button>
+            <button id="btn-aba-tarefas" class="aba-btn" onclick="mudarAbaAluno('secao-tarefas')">
+                <span class="material-symbols-rounded">task</span>Tarefas
+            </button>
+        </nav>
+
+        <div id="secao-cronograma" class="secao-aluno-item">
+            <div id="area-cronograma" class="cronograma" style="display:block;">
+                <div class="cabecalho-aluno">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                        <h3 id="nome-aluno-titulo" style="margin:0;">Aluno</h3>
+                        
+                        <div id="tag-mensalidade-aluno" class="selo-mensalidade"></div>
+                    </div>
+
+                    <div class="progresso-wrapper">
+                        <div class="progresso-barra-fundo">
+                            <div id="progresso-barra-preenchimento"></div>
+                        </div>
+                        <span id="progresso-porcentagem">0%</span>
+                    </div>
+                </div>
+                <div id="fases-cronograma-container"></div>
+            </div>
+        </div>
+
+        <div id="secao-tarefas" class="secao-aluno-item" style="display: none;">
+            <div class="card-painel">
+                <h3><span class="material-symbols-rounded">assignment</span>Trabalho de Casa</h3>
+                <div id="lista-tarefas-aluno-container"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script> window.PAGINA_ALUNO = true; </script>
+<script src="script.js"></script>
+</body>
+</html>

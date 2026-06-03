@@ -1,0 +1,387 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+:root {
+    --bg-principal: #121418;
+    --bg-card: #1c1f26;
+    --bg-input: #252a34;
+    --cor-acento: #ffb100;
+    --cor-acento-rgb: 255, 177, 0;
+    --cor-texto: #f5f6f8;
+    --cor-texto-secundario: #98a1b0;
+    --cor-sucesso: #00e676;
+    --cor-perigo: #ff5252;
+    --radio-borda: 16px;
+    --transicao-suave: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--bg-principal);
+    color: var(--cor-texto);
+    min-height: 100vh;
+    padding: 20px 12px;
+}
+
+/* Material Icons Setup */
+.material-symbols-rounded {
+    font-variant: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* HEADER */
+.app-header {
+    text-align: center;
+    margin-bottom: 25px;
+    animation: fadeIn Down 0.5s ease;
+}
+
+.app-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--cor-texto);
+}
+
+.app-header h1 span {
+    color: var(--cor-acento);
+}
+
+/* ABAS DE NAVEGAÇÃO SUPERIOR (Formatos do Design Guia) */
+.abas-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: var(--bg-card);
+    padding: 6px;
+    border-radius: 20px;
+    gap: 6px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.aba-btn {
+    background: transparent;
+    border: none;
+    color: var(--cor-texto-secundario);
+    padding: 12px 0;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: var(--transicao-suave);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.aba-btn span.material-symbols-rounded {
+    font-size: 22px;
+}
+
+.aba-btn:hover {
+    color: var(--cor-texto);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.aba-btn.ativa {
+    color: var(--bg-principal);
+    background: var(--cor-acento);
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(var(--cor-acento-rgb), 0.3);
+    transform: scale(1.02);
+}
+
+/* CONTEÚDO DAS ABAS */
+.conteudo-aba, .secao-aluno-item {
+    display: none;
+    animation: faturamentoFade 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.conteudo-aba.ativa {
+    display: block;
+}
+
+/* CARDS E PAINÉIS */
+.card-painel {
+    background: var(--bg-card);
+    border-radius: var(--radio-borda);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.card-painel h3 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--cor-texto);
+}
+
+/* INPUTS E SELETORES */
+.label-clean {
+    font-size: 12px;
+    color: var(--cor-texto-secundario);
+    margin-bottom: 6px;
+    display: block;
+}
+
+select, input[type="text"], input[type="date"], textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px 14px;
+    border-radius: 12px;
+    color: var(--cor-texto);
+    font-size: 14px;
+    transition: var(--transicao-suave);
+    outline: none;
+}
+
+select:focus, input:focus, textarea:focus {
+    border-color: var(--cor-acento);
+    box-shadow: 0 0 0 3px rgba(var(--cor-acento-rgb), 0.15);
+}
+
+/* BOTÕES */
+.btn-acao {
+    background: var(--cor-acento);
+    color: var(--bg-principal);
+    font-weight: 600;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transicao-suave);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-acao:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.btn-acao:active {
+    transform: translateY(1px);
+}
+
+/* CRONOGRAMA E ÁREA DE PROGRESSO */
+.cabecalho-aluno {
+    background: var(--bg-card);
+    border-radius: var(--radio-borda);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Barra Gráfica Circular/Linear Arredondada */
+.progresso-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.progresso-barra-fundo {
+    flex: 1;
+    background: var(--bg-input);
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#progresso-barra-preenchimento {
+    background: linear-gradient(90deg, var(--cor-acento), #ffcd38);
+    height: 100%;
+    width: 0%;
+    border-radius: 5px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#progresso-porcentagem {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cor-acento);
+    min-width: 40px;
+    text-align: right;
+}
+
+/* BLOCOS DO CRONOGRAMA */
+.fase-bloco {
+    background: var(--bg-card);
+    border-radius: var(--radio-borda);
+    padding: 16px;
+    margin-bottom: 15px;
+    border-left: 4px solid var(--cor-acento);
+}
+
+.fase-titulo {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cor-texto);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* CHECKBOXES PERSONALIZADAS (Tema Dark Moderno) */
+.item-tarefa {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.item-tarefa:last-child {
+    border-bottom: none;
+}
+
+.item-tarefa input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--cor-texto-secundario);
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    transition: var(--transicao-suave);
+    display: grid;
+    place-content: center;
+}
+
+.item-tarefa input[type="checkbox"]::before {
+    content: "\e5ca";
+    font-family: 'Material Symbols Rounded';
+    font-size: 16px;
+    color: var(--bg-principal);
+    font-weight: bold;
+    transform: scale(0);
+    transition: var(--transicao-suave);
+}
+
+.item-tarefa input[type="checkbox"]:checked {
+    background: var(--cor-acento);
+    border-color: var(--cor-acento);
+}
+
+.item-tarefa input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+
+.item-tarefa span.concluido {
+    color: var(--cor-texto-secundario);
+    text-decoration: line-through;
+    opacity: 0.6;
+}
+
+/* SELOS DE MENSALIDADE (Igual ao Layout de Faturamento das fotos) */
+.selo-mensalidade {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: none;
+    cursor: pointer;
+    transition: var(--transicao-suave);
+}
+
+.selo-mensalidade.pago {
+    background: rgba(0, 230, 118, 0.12);
+    color: var(--cor-sucesso);
+}
+
+.selo-mensalidade.pendente {
+    background: rgba(255, 82, 82, 0.12);
+    color: var(--cor-perigo);
+}
+
+/* LISTAS GERAIS E ARRASTÁVEIS */
+.lista-customizada, .lista-customizada-fases {
+    list-style: none;
+    margin-top: 10px;
+}
+
+.lista-customizada li, .lista-customizada-fases li, .item-massa {
+    background: var(--bg-input);
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.btn-deletar-pequeno {
+    background: rgba(255, 82, 82, 0.1);
+    color: var(--cor-perigo);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: var(--transicao-suave);
+}
+
+.btn-deletar-pequeno:hover {
+    background: var(--cor-perigo);
+    color: var(--cor-texto);
+}
+
+/* PAINÉIS DE PERIGO */
+.painel-perigo {
+    border-left: 4px solid var(--cor-perigo);
+}
+.btn-deletar-massa {
+    width: 100%;
+    background: var(--cor-perigo);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: var(--transicao-suave);
+}
+
+/* ANIMAÇÕES */
+@keyframes faturamentoFade {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
