@@ -54,7 +54,7 @@ let tarefasAlunos = {};
 let mensalidadesAlunos = {};
 let alunoLogadoId = null;
 
-// Trava de segurança robusta contra concorrência
+// Trava de segurança robusta contra concorrência (usada no drag e no clique dos checkboxes)
 let bloqueiaAtualizacaoPorArrasto = false;
 
 function obterChaveMesAtual() {
@@ -97,7 +97,7 @@ function recalcularEFatiazarInterfaceCompleta() {
         renderizarCronogramaAlunoId(alunoLogadoId, atualFasesContainer, atualBarra, atualTexto, atualTitulo);
         renderizarTarefasAluno(alunoLogadoId);
     } else if (!window.PAGINA_ALUNO) {
-        // 3. Se for o painel admin, atualiza a aba de aulas e cronograma do aluno ativo
+        // 3. Se for o painel admin, updates gerais
         const cursoSelecionado = seletorInstrumentoConfig ? seletorInstrumentoConfig.value : "";
         if(cursoSelecionado) {
             renderizarEstruturaCursoComTopicosAninhados(cursoSelecionado);
@@ -131,7 +131,6 @@ function escutarMudancasNaNuvem() {
                 tarefasAlunos = dados.tarefas || {};
                 mensalidadesAlunos = dados.mensalidades || {};
                 
-                // Atualiza de forma segura em background
                 recalcularEFatiazarInterfaceCompleta();
             }
         } catch (erro) {
@@ -226,7 +225,6 @@ function renderizarTabelaCodigosBackground() {
     tabelaCodigosAlunos.innerHTML = htmlGerado;
 }
 
-// CORREÇÃO: Força o redesenho dos blocos sem travas de comparação de string antiga
 function renderizarListasMassaBackground() {
     if (listaInstrumentosExclusao) {
         let htmlInst = '';
@@ -738,7 +736,8 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
         });
     });
 
-    if (container.dataset.estadoAtual === estadoAtualString) {
+    // CORREÇÃO: Evita travar o clique da checkbox se a trava de concorrência estiver ativa temporariamente
+    if (container.dataset.estadoAtual === estadoAtualString && !bloqueiaAtualizacaoPorArrasto) {
         const pct = calcularProgresso(alunoId, inst.topicos);
         if(barra) barra.style.width = pct + '%'; 
         if(texto) texto.innerText = pct + '%';
@@ -765,12 +764,29 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
 
             if (!window.PAGINA_ALUNO) {
                 cb.addEventListener('change', async function() {
+                    // CORREÇÃO CRUCIAL: Trava temporariamente o cronômetro automático do Firebase
+                    // para dar tempo de salvar o novo estado sem que a tela seja redefinida com dados antigos
+                    bloqueiaAtualizacaoPorArrasto = true;
+
                     progressoAlunos[chaveSalva] = this.checked;
                     span.className = this.checked ? 'concluido' : '';
+                    
                     const pct = calcularProgresso(alunoId, inst.topicos);
                     if(barra) barra.style.width = pct + '%'; 
                     if(texto) texto.innerText = pct + '%';
+                    
                     await salvarNaNuvem();
+                    
+                    // Atualiza a string local do estado para alinhar a interface
+                    container.dataset.estadoAtual = container.dataset.estadoAtual.replace(
+                        `${chaveSalva}:${!this.checked}`, 
+                        `${chaveSalva}:${this.checked}`
+                    );
+
+                    // Libera o cronômetro automático após 3 segundos
+                    setTimeout(() => {
+                        bloqueiaAtualizacaoPorArrasto = false;
+                    }, 3000);
                 });
             }
 
@@ -798,7 +814,6 @@ window.onload = async function() {
         }
     } catch(e) { console.error("Erro na carga inicial: ", e); }
     
-    // Força carga inicial completa de todas as abas e painéis
     recalcularEFatiazarInterfaceCompleta();
 
     if(window.PAGINA_ALUNO) {
