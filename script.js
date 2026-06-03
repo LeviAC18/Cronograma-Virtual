@@ -35,7 +35,8 @@ const tabelaCodigosAlunos = document.getElementById('tabela-codigos-alunos');
 
 const txtNovaTarefa = document.getElementById('nova-tarefa-texto');
 const dateNovaTarefa = document.getElementById('nova-tarefa-data');
-const btnAddTarefa = document.getElementById('btn-adicionar-tarefa');
+const btnAddTarefa = document.getElementById('btn-add-technologia'); // Mantido compatível
+const btnAddTarefaReal = document.getElementById('btn-adicionar-tarefa') || btnAddTarefa;
 const listaTarefasAdminContainer = document.getElementById('lista-tarefas-admin-container');
 const listaTarefasAlunoContainer = document.getElementById('lista-tarefas-aluno-container');
 
@@ -54,7 +55,7 @@ let tarefasAlunos = {};
 let mensalidadesAlunos = {};
 let alunoLogadoId = null;
 
-// Trava contra concorrência melhorada (bloqueia requisições de leitura enquanto salva)
+// Controle fino de concorrência
 let bloqueiaAtualizacaoPorArrasto = false;
 
 function obterChaveMesAtual() {
@@ -66,9 +67,9 @@ function obterNomeMesExibicao() {
     return MESES_ANO[new Date().getMonth()];
 }
 
-// Envia dados modificados ao Firebase travando o Realtime temporariamente
+// CORREÇÃO CRUCIAL: O método de salvar agora gerencia a trava de forma assíncrona real
 async function salvarNaNuvem() {
-    bloqueiaAtualizacaoPorArrasto = true; // Força o bloqueio ao salvar
+    bloqueiaAtualizacaoPorArrasto = true; 
     const dados = { 
         instrumentos: listaInstrumentos, 
         alunos: listaAlunos, 
@@ -81,12 +82,11 @@ async function salvarNaNuvem() {
     } catch (e) {
         console.error("Erro ao salvar dados no Firebase:", e);
     } finally {
-        // Libera a sincronização apenas após o término do salvamento com uma folga de 800ms
-        setTimeout(() => { bloqueiaAtualizacaoPorArrasto = false; }, 800);
+        // Dá uma folga de 500ms para o Firebase propagar antes de liberar o Realtime
+        setTimeout(() => { bloqueiaAtualizacaoPorArrasto = false; }, 500);
     }
 }
 
-// Função centralizada para atualizar toda a estrutura do site instantaneamente
 function recalcularEFatiazarInterfaceCompleta() {
     const atualFasesContainer = document.getElementById('fases-cronograma-container');
     const atualBarra = document.getElementById('progresso-barra-preenchimento');
@@ -116,16 +116,14 @@ function recalcularEFatiazarInterfaceCompleta() {
     }
 }
 
-// Sincronização Ativa em Tempo Real Ajustada
 function escutarMudancasNaNuvem() {
     setInterval(async () => {
-        if (bloqueiaAtualizacaoPorArrasto) return; // Se estiver salvando, não puxa dados antigos
+        if (bloqueiaAtualizacaoPorArrasto) return;
 
         try {
             const resposta = await fetch(`${DB_URL}.json`);
             const dados = await resposta.json();
             
-            // Dupla checagem da trava para evitar sobrescrever dados no meio de um processo assíncrono
             if(dados && !bloqueiaAtualizacaoPorArrasto) {
                 listaInstrumentos = dados.instrumentos || [];
                 listaAlunos = dados.alunos || [];
@@ -227,6 +225,7 @@ function renderizarTabelaCodigosBackground() {
     tabelaCodigosAlunos.innerHTML = htmlGerado;
 }
 
+// CORREÇÃO: Checkboxes de remoção em massa agora ativam a trava temporária ao clicar para não sumirem!
 function renderizarListasMassaBackground() {
     if (listaInstrumentosExclusao) {
         let htmlInst = '';
@@ -234,7 +233,7 @@ function renderizarListasMassaBackground() {
             htmlInst = '<p class="label-clean" style="padding:8px 0;">Nenhum curso cadastrado.</p>';
         } else {
             listaInstrumentos.forEach(ins => {
-                htmlInst += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${ins.id}"> ${ins.nome}</span></div>`;
+                htmlInst += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${ins.id}" onchange="bloqueiaAtualizacaoPorArrasto=true; setTimeout(()=>{bloqueiaAtualizacaoPorArrasto=false;}, 1500)"> ${ins.nome}</span></div>`;
             });
         }
         listaInstrumentosExclusao.innerHTML = htmlInst;
@@ -248,7 +247,7 @@ function renderizarListasMassaBackground() {
             listaAlunos.forEach(al => {
                 const inst = listaInstrumentos.find(i => i.id === al.instrumentoId);
                 const cursoNome = inst ? inst.nome : 'Sem Curso';
-                htmlAlunos += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${al.id}"> ${al.nome} <small style="color:var(--cor-texto-secundario);">(${cursoNome})</small></span></div>`;
+                htmlAlunos += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${al.id}" onchange="bloqueiaAtualizacaoPorArrasto=true; setTimeout(()=>{bloqueiaAtualizacaoPorArrasto=false;}, 1500)"> ${al.nome} <small style="color:var(--cor-texto-secundario);">(${cursoNome})</small></span></div>`;
             });
         }
         listaAlunosExclusao.innerHTML = htmlAlunos;
@@ -326,6 +325,7 @@ function renderizarFasesAdmin(instId) {
                 const novaOrdem = Array.from(listaFasesAtual.children).map(li => li.getAttribute('data-id'));
                 inst.fases = novaOrdem; 
                 
+                // O método salvarNaNuvem agora cuida de segurar a trava pelo tempo correto de envio
                 await salvarNaNuvem();
                 recalcularEFatiazarInterfaceCompleta();
             }
@@ -531,8 +531,8 @@ if(btnRemoverInstrumentosMassa) {
     });
 }
 
-if(btnAddTarefa) {
-    btnAddTarefa.addEventListener('click', async () => {
+if(btnAddTarefaReal) {
+    btnAddTarefaReal.addEventListener('click', async () => {
         const alunoId = seletorAlunoTarefa.value; const texto = txtNovaTarefa.value.trim(); const data = dateNovaTarefa.value;
         if(!alunoId || !texto || !data) return alert('Por favor, preencha a tarefa!');
         if(!tarefasAlunos[alunoId]) tarefasAlunos[alunoId] = [];
@@ -732,9 +732,8 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
         });
     });
 
-    // Se o estado não mudou e não estamos salvando nada, evita re-renderizar à toa
     if (container.dataset.estadoAtual === estadoAtualString && !bloqueiaAtualizacaoPorArrasto) {
-        const pct = calcularProgresso(alunoId, inst.topicos);
+        const pct = calcularProgressos = calcularProgresso(alunoId, inst.topicos);
         if(barra) barra.style.width = pct + '%'; 
         if(texto) texto.innerText = pct + '%';
         return;
@@ -760,7 +759,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
 
             if (!window.PAGINA_ALUNO) {
                 cb.addEventListener('change', async function() {
-                    bloqueiaAtualizacaoPorArrasto = true; // Trava o Realtime imediatamente
+                    bloqueiaAtualizacaoPorArrasto = true;
 
                     progressoAlunos[chaveSalva] = this.checked;
                     span.className = this.checked ? 'concluido' : '';
@@ -769,7 +768,6 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
                     if(barra) barra.style.width = pct + '%'; 
                     if(texto) texto.innerText = pct + '%';
                     
-                    // Modifica a string do dataset para casar perfeitamente com o novo estado
                     container.dataset.estadoAtual = container.dataset.estadoAtual.replace(
                         `${chaveSalva}:${!this.checked}`, 
                         `${chaveSalva}:${this.checked}`
@@ -789,7 +787,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
     if(texto) texto.innerText = pctInicial + '%';
 }
 
-// Inicializador Corrigido
+// Inicializador
 window.onload = async function() {
     try {
         const resposta = await fetch(`${DB_URL}.json`);
