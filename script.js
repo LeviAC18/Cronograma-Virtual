@@ -35,10 +35,12 @@ const tabelaCodigosAlunos = document.getElementById('tabela-codigos-alunos');
 
 const txtNovaTarefa = document.getElementById('nova-tarefa-texto');
 const dateNovaTarefa = document.getElementById('nova-tarefa-data');
-const btnAddTarefa = document.getElementById('btn-add-technologia'); // Mantido compatível
-const btnAddTarefaReal = document.getElementById('btn-adicionar-tarefa') || btnAddTarefa;
+const btnAddTarefa = document.getElementById('btn-add-technologia'); 
 const listaTarefasAdminContainer = document.getElementById('lista-tarefas-admin-container');
 const listaTarefasAlunoContainer = document.getElementById('lista-tarefas-aluno-container');
+
+// Mapeamento do novo elemento de persistência manual
+const btnSalvarGeral = document.getElementById('btn-salvar-geral');
 
 const inputCodigoAluno = document.getElementById('codigo-aluno-input');
 const btnEntrarAluno = document.getElementById('btn-entrar-aluno');
@@ -55,9 +57,6 @@ let tarefasAlunos = {};
 let mensalidadesAlunos = {};
 let alunoLogadoId = null;
 
-// Controle fino de concorrência
-let bloqueiaAtualizacaoPorArrasto = false;
-
 function obterChaveMesAtual() {
     const dataAtual = new Date();
     return `${dataAtual.getFullYear()}_${MESES_ANO[dataAtual.getMonth()]}`;
@@ -67,9 +66,14 @@ function obterNomeMesExibicao() {
     return MESES_ANO[new Date().getMonth()];
 }
 
-// CORREÇÃO CRUCIAL: O método de salvar agora gerencia a trava de forma assíncrona real
+// ATUALIZAÇÃO CENTRALIZADA: Executada estritamente sob demanda pelo botão "Salvar"
 async function salvarNaNuvem() {
-    bloqueiaAtualizacaoPorArrasto = true; 
+    if (btnSalvarGeral) {
+        btnSalvarGeral.disabled = true;
+        btnSalvarGeral.innerHTML = `<span class="material-symbols-rounded">sync</span> Atualizando Nuvem...`;
+        btnSalvarGeral.style.opacity = "0.7";
+    }
+
     const dados = { 
         instrumentos: listaInstrumentos, 
         alunos: listaAlunos, 
@@ -77,13 +81,31 @@ async function salvarNaNuvem() {
         tarefas: tarefasAlunos,
         mensalidades: mensalidadesAlunos
     };
+
     try {
         await fetch(`${DB_URL}.json`, { method: 'PUT', body: JSON.stringify(dados) });
+        
+        if (btnSalvarGeral) {
+            btnSalvarGeral.innerHTML = `<span class="material-symbols-rounded">cloud_done</span> Sincronizado com Sucesso!`;
+            btnSalvarGeral.style.background = "var(--cor-sucesso)";
+            btnSalvarGeral.style.color = "#121418";
+            
+            setTimeout(() => {
+                btnSalvarGeral.disabled = false;
+                btnSalvarGeral.innerHTML = `<span class="material-symbols-rounded">save</span> Salvar Alterações na Nuvem`;
+                btnSalvarGeral.style.background = "var(--cor-acento)";
+                btnSalvarGeral.style.color = "var(--bg-principal)";
+                btnSalvarGeral.style.opacity = "1";
+            }, 2500);
+        }
     } catch (e) {
         console.error("Erro ao salvar dados no Firebase:", e);
-    } finally {
-        // Dá uma folga de 500ms para o Firebase propagar antes de liberar o Realtime
-        setTimeout(() => { bloqueiaAtualizacaoPorArrasto = false; }, 500);
+        alert("Falha de comunicação com o servidor ao salvar.");
+        if (btnSalvarGeral) {
+            btnSalvarGeral.disabled = false;
+            btnSalvarGeral.innerHTML = `<span class="material-symbols-rounded">save</span> Tentar Salvar Novamente`;
+            btnSalvarGeral.style.background = "var(--cor-perigo)";
+        }
     }
 }
 
@@ -116,15 +138,17 @@ function recalcularEFatiazarInterfaceCompleta() {
     }
 }
 
+// CONTROLE SELETIVO DE SESSÃO: Sincronização contínua apenas na ponta do Aluno
 function escutarMudancasNaNuvem() {
-    setInterval(async () => {
-        if (bloqueiaAtualizacaoPorArrasto) return;
+    // Se for o painel administrativo do professor, bloqueia loops paralelos para preservar modificações em andamento
+    if (!window.PAGINA_ALUNO) return;
 
+    setInterval(async () => {
         try {
             const resposta = await fetch(`${DB_URL}.json`);
             const dados = await resposta.json();
             
-            if(dados && !bloqueiaAtualizacaoPorArrasto) {
+            if(dados) {
                 listaInstrumentos = dados.instrumentos || [];
                 listaAlunos = dados.alunos || [];
                 progressoAlunos = dados.progresso || {};
@@ -134,9 +158,9 @@ function escutarMudancasNaNuvem() {
                 recalcularEFatiazarInterfaceCompleta();
             }
         } catch (erro) {
-            console.error("Erro na sincronização automática:", erro);
+            console.error("Erro na sincronização em tempo real do aluno:", erro);
         }
-    }, 2000);
+    }, 3000); // Consulta otimizada a cada 3 segundos na ponta do Aluno
 }
 
 function mudarAba(idAba) {
@@ -225,7 +249,6 @@ function renderizarTabelaCodigosBackground() {
     tabelaCodigosAlunos.innerHTML = htmlGerado;
 }
 
-// CORREÇÃO: Checkboxes de remoção em massa agora ativam a trava temporária ao clicar para não sumirem!
 function renderizarListasMassaBackground() {
     if (listaInstrumentosExclusao) {
         let htmlInst = '';
@@ -233,7 +256,7 @@ function renderizarListasMassaBackground() {
             htmlInst = '<p class="label-clean" style="padding:8px 0;">Nenhum curso cadastrado.</p>';
         } else {
             listaInstrumentos.forEach(ins => {
-                htmlInst += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${ins.id}" onchange="bloqueiaAtualizacaoPorArrasto=true; setTimeout(()=>{bloqueiaAtualizacaoPorArrasto=false;}, 1500)"> ${ins.nome}</span></div>`;
+                htmlInst += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${ins.id}"> ${ins.nome}</span></div>`;
             });
         }
         listaInstrumentosExclusao.innerHTML = htmlInst;
@@ -247,7 +270,7 @@ function renderizarListasMassaBackground() {
             listaAlunos.forEach(al => {
                 const inst = listaInstrumentos.find(i => i.id === al.instrumentoId);
                 const cursoNome = inst ? inst.nome : 'Sem Curso';
-                htmlAlunos += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${al.id}" onchange="bloqueiaAtualizacaoPorArrasto=true; setTimeout(()=>{bloqueiaAtualizacaoPorArrasto=false;}, 1500)"> ${al.nome} <small style="color:var(--cor-texto-secundario);">(${cursoNome})</small></span></div>`;
+                htmlAlunos += `<div class="item-massa"><span style="display:flex; gap:10px; align-items:center;"><input type="checkbox" value="${al.id}"> ${al.nome} <small style="color:var(--cor-texto-secundario);">(${cursoNome})</small></span></div>`;
             });
         }
         listaAlunosExclusao.innerHTML = htmlAlunos;
@@ -258,32 +281,34 @@ const gerarId = () => 'id_' + new Date().getTime();
 const gerarCodigoAcesso = () => 'M' + Math.floor(100 + Math.random() * 900);
 
 if (btnAddInstrumento) {
-    btnAddInstrumento.addEventListener('click', async () => {
+    btnAddInstrumento.addEventListener('click', () => {
         const nome = inputNovoInstrumento.value.trim(); if(!nome) return;
         listaInstrumentos.push({ id: gerarId(), nome: nome, fases: [], topicos: [] });
-        await salvarNaNuvem(); inputNovoInstrumento.value = ''; recalcularEFatiazarInterfaceCompleta();
+        inputNovoInstrumento.value = ''; 
+        recalcularEFatiazarInterfaceCompleta();
     });
 }
 
-async function editarAlunoAdmin(alunoId) {
+function editarAlunoAdmin(alunoId) {
     const al = listaAlunos.find(a => a.id === alunoId);
     if(!al) return;
     const novoNome = prompt("Digite o novo nome do aluno:", al.nome);
     if(novoNome && novoNome.trim() !== "") {
         al.nome = novoNome.trim();
-        await salvarNaNuvem(); recalcularEFatiazarInterfaceCompleta();
+        recalcularEFatiazarInterfaceCompleta();
     }
 }
 
 if (btnAddFase) {
-    btnAddFase.addEventListener('click', async () => {
+    btnAddFase.addEventListener('click', () => {
         const instId = seletorInstrumentoFase.value; const nomeFase = inputNovaFase.value.trim();
         if(!instId || !nomeFase) return alert('Selecione o curso e digite a fase.');
         const inst = listaInstrumentos.find(i => i.id === instId);
         if(!inst.fases) inst.fases = [];
         if(inst.fases.includes(nomeFase)) return alert('Esta fase já existe.');
         inst.fases.push(nomeFase);
-        await salvarNaNuvem(); inputNovaFase.value = ''; renderizarFasesAdmin(instId);
+        inputNovaFase.value = ''; 
+        renderizarFasesAdmin(instId);
     });
 }
 
@@ -319,21 +344,16 @@ function renderizarFasesAdmin(instId) {
     if(typeof Sortable !== 'undefined') {
         Sortable.create(listaFasesAtual, {
             animation: 150,
-            onChoose: () => { bloqueiaAtualizacaoPorArrasto = true; },
-            onEnd: async function () {
-                bloqueiaAtualizacaoPorArrasto = true;
+            onEnd: function () {
                 const novaOrdem = Array.from(listaFasesAtual.children).map(li => li.getAttribute('data-id'));
                 inst.fases = novaOrdem; 
-                
-                // O método salvarNaNuvem agora cuida de segurar a trava pelo tempo correto de envio
-                await salvarNaNuvem();
                 recalcularEFatiazarInterfaceCompleta();
             }
         });
     }
 }
 
-async function editarFaseAdmin(instId, faseAntiga) {
+function editarFaseAdmin(instId, faseAntiga) {
     const inst = listaInstrumentos.find(i => i.id === instId);
     const index = inst.fases.indexOf(faseAntiga);
     if(index === -1) return;
@@ -344,17 +364,15 @@ async function editarFaseAdmin(instId, faseAntiga) {
         if(inst.topicos) {
             inst.topicos.forEach(t => { if(t && t.fase === faseAntiga) t.fase = novaFase.trim(); });
         }
-        await salvarNaNuvem(); 
         renderizarFasesAdmin(instId);
         recalcularEFatiazarInterfaceCompleta();
     }
 }
 
-async function deletarFaseAdmin(instId, faseNome) {
+function deletarFaseAdmin(instId, faseNome) {
     const inst = listaInstrumentos.find(i => i.id === instId);
     inst.fases = inst.fases.filter(f => f !== faseNome);
     if(inst.topicos) inst.topicos = inst.topicos.filter(t => t && t.fase !== faseNome);
-    await salvarNaNuvem(); 
     renderizarFasesAdmin(instId);
     recalcularEFatiazarInterfaceCompleta();
 }
@@ -434,25 +452,17 @@ function renderizarEstruturaCursoComTopicosAninhados(instId) {
             Sortable.create(subListaUL, {
                 animation: 150,
                 handle: 'span',
-                onStart: () => { 
-                    bloqueiaAtualizacaoPorArrasto = true; 
-                },
-                onEnd: async function() {
-                    bloqueiaAtualizacaoPorArrasto = true;
-
+                onEnd: function() {
                     const nomesReordenados = Array.from(subListaUL.children)
                         .map(li => li.getAttribute('data-topico-nome'))
                         .filter(nome => nome !== null);
 
                     const topicosOutrasFases = inst.topicos.filter(t => t && t.fase !== nomeFase);
-
                     const topicosDestaFaseNovos = nomesReordenados.map(nome => {
                         return { nome: nome, fase: nomeFase };
                     });
 
                     inst.topicos = [...topicosOutrasFases, ...topicosDestaFaseNovos];
-                    
-                    await salvarNaNuvem();
                     recalcularEFatiazarInterfaceCompleta();
                 }
             });
@@ -464,7 +474,7 @@ function renderizarTopicosAdmin(instId) {
     renderizarEstruturaCursoComTopicosAninhados(instId);
 }
 
-async function editarTopicoAninhado(instId, nomeAntigo, faseNome) {
+function editarTopicoAninhado(instId, nomeAntigo, faseNome) {
     const inst = listaInstrumentos.find(i => i.id === instId);
     if(!inst || !inst.topicos) return;
     const topico = inst.topicos.find(t => t && t.nome === nomeAntigo && t.fase === faseNome);
@@ -473,71 +483,70 @@ async function editarTopicoAninhado(instId, nomeAntigo, faseNome) {
     const novoNome = prompt("Digite o novo nome do tópico:", topico.nome);
     if(novoNome && novoNome.trim() !== "") {
         topico.nome = novoNome.trim();
-        await salvarNaNuvem(); 
         recalcularEFatiazarInterfaceCompleta();
     }
 }
 
-async function deletarTopicoAninhado(instId, nomeTopico, faseNome) {
+function deletarTopicoAninhado(instId, nomeTopico, faseNome) {
     const inst = listaInstrumentos.find(i => i.id === instId);
     if(!inst || !inst.topicos) return;
     inst.topicos = inst.topicos.filter(t => t && !(t.nome === nomeTopico && t.fase === faseNome));
-    await salvarNaNuvem(); 
     recalcularEFatiazarInterfaceCompleta();
 }
 
 if(btnAddTopico) {
-    btnAddTopico.addEventListener('click', async () => {
+    btnAddTopico.addEventListener('click', () => {
         const id = seletorInstrumentoConfig.value; const nome = inputNovoTopico.value.trim(); const fase = seletorFaseTopico.value;
         if(!id || !nome || !fase) return alert('Escolha os dados completando os seletores!');
         const inst = listaInstrumentos.find(i => i.id === id);
         if(!inst.topicos) inst.topicos = [];
         inst.topicos.push({ nome: nome, fase: fase });
-        await salvarNaNuvem(); inputNovoTopico.value = ''; 
+        inputNovoTopico.value = ''; 
         recalcularEFatiazarInterfaceCompleta();
     });
 }
 
 if(btnAdicionarAluno) {
-    btnAdicionarAluno.addEventListener('click', async () => {
+    btnAdicionarAluno.addEventListener('click', () => {
         const nome = inputNovoAlunoNome.value.trim(); const instId = seletorInstrumentoAluno.value;
         if(!nome || !instId) return alert('Preencha os campos!');
         listaAlunos.push({ id: gerarId(), nome: nome, instrumentoId: instId, codigo: gerarCodigoAcesso() });
-        await salvarNaNuvem(); inputNovoAlunoNome.value = ''; 
+        inputNovoAlunoNome.value = ''; 
         recalcularEFatiazarInterfaceCompleta();
-        alert('Aluno matriculado!');
+        alert('Aluno inserido no painel local! Lembre-se de salvar na nuvem.');
     });
 }
 
 if(btnRemoverAlunosMassa) {
-    btnRemoverAlunosMassa.addEventListener('click', async () => {
+    btnRemoverAlunosMassa.addEventListener('click', () => {
         const marcados = [...listaAlunosExclusao.querySelectorAll('input:checked')].map(c => c.value);
         if(marcados.length === 0) return alert('Selecione ao menos um aluno para remover.');
-        if(confirm('Remover alunos selecionados?')) {
+        if(confirm('Remover alunos selecionados da lista local?')) {
             listaAlunos = listaAlunos.filter(a => !marcados.includes(a.id));
-            await salvarNaNuvem(); recalcularEFatiazarInterfaceCompleta();
+            recalcularEFatiazarInterfaceCompleta();
         }
     });
 }
 
 if(btnRemoverInstrumentosMassa) {
-    btnRemoverInstrumentosMassa.addEventListener('click', async () => {
+    btnRemoverInstrumentosMassa.addEventListener('click', () => {
         const marcados = [...listaInstrumentosExclusao.querySelectorAll('input:checked')].map(c => c.value);
         if(marcados.length === 0) return alert('Selecione ao menos um curso para remover.');
-        if(confirm('Excluir matérias selecionadas?')) {
+        if(confirm('Excluir matérias selecionadas da lista local?')) {
             listaInstrumentos = listaInstrumentos.filter(i => !marcados.includes(i.id));
-            await salvarNaNuvem(); recalcularEFatiazarInterfaceCompleta();
+            recalcularEFatiazarInterfaceCompleta();
         }
     });
 }
 
-if(btnAddTarefaReal) {
-    btnAddTarefaReal.addEventListener('click', async () => {
+if(btnAddTarefa) {
+    btnAddTarefa.addEventListener('click', () => {
         const alunoId = seletorAlunoTarefa.value; const texto = txtNovaTarefa.value.trim(); const data = dateNovaTarefa.value;
         if(!alunoId || !texto || !data) return alert('Por favor, preencha a tarefa!');
         if(!tarefasAlunos[alunoId]) tarefasAlunos[alunoId] = [];
         tarefasAlunos[alunoId].push({ id: 't_id_' + new Date().getTime(), texto: texto, dataEntrega: data, status: 'Pendente' });
-        await salvarNaNuvem(); txtNovaTarefa.value = ''; dateNovaTarefa.value = ''; renderizarTarefasAdmin(alunoId); alert('Tarefa lançada!');
+        txtNovaTarefa.value = ''; dateNovaTarefa.value = ''; 
+        renderizarTarefasAdmin(alunoId);
     });
 }
 
@@ -565,27 +574,30 @@ function renderizarTarefasAdmin(alunoId) {
                     <small style="color:var(--cor-texto-secundario);">📅 Prazo: ${dataFormatada}</small>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <select onchange="mudarStatusTarefaBanco('${alunoId}', '${tarefa.id}', this.value)" style="padding:6px; font-size:12px; width:auto;">
+                    <select onchange="mudarStatusTarefaLocal('${alunoId}', '${tarefa.id}', this.value)" style="padding:6px; font-size:12px; width:auto;">
                         <option value="Pendente" ${statusAtual === 'Pendente' ? 'selected':''}>⏳ Analisando</option>
                         <option value="Concluido" ${statusAtual === 'Concluido' ? 'selected':''}>✓ Concluído</option>
                         <option value="NaoFeito" ${statusAtual === 'NaoFeito' ? 'selected':''}>❌ Recusado</option>
                     </select>
-                    <button class="btn-deletar-pequeno" onclick="deletarTarefa('${alunoId}', '${tarefa.id}')">X</button>
+                    <button class="btn-deletar-pequeno" onclick="deletarTarefaLocal('${alunoId}', '${tarefa.id}')">X</button>
                 </div>
             </div>`;
     });
-    if(listaTarefasAdminContainer.innerHTML !== htmlTarefas) listaTarefasAdminContainer.innerHTML = htmlTarefas;
+    listaTarefasAdminContainer.innerHTML = htmlTarefas;
 }
 
-async function mudarStatusTarefaBanco(alunoId, tarefaId, novoStatus) {
+function mudarStatusTarefaLocal(alunoId, tarefaId, novoStatus) {
     const tarefa = tarefasAlunos[alunoId].find(t => t.id === tarefaId);
-    if(tarefa) { tarefa.status = novoStatus; await salvarNaNuvem(); renderizarTarefasAdmin(alunoId); }
+    if(tarefa) { 
+        tarefa.status = novoStatus; 
+        renderizarTarefasAdmin(alunoId); 
+    }
 }
 
-async function deletarTarefa(alunoId, tarefaId) {
-    if(confirm('Apagar essa tarefa?')) {
+function deletarTarefaLocal(alunoId, tarefaId) {
+    if(confirm('Apagar essa tarefa da lista?')) {
         tarefasAlunos[alunoId] = tarefasAlunos[alunoId].filter(t => t.id !== tarefaId);
-        await salvarNaNuvem(); renderizarTarefasAdmin(alunoId);
+        renderizarTarefasAdmin(alunoId);
     }
 }
 
@@ -608,9 +620,8 @@ function gerenciarRenderizacaoMensalidadeAdmin(alunoId) {
         btnAlternarPagamento.innerHTML = `<span class="material-symbols-rounded" style="font-size:16px">pending</span> Aberto`;
     }
 
-    btnAlternarPagamento.onclick = async () => {
+    btnAlternarPagamento.onclick = () => {
         mensalidadesAlunos[alunoId][mesChave] = !estaPago;
-        await salvarNaNuvem();
         gerenciarRenderizacaoMensalidadeAdmin(alunoId);
     };
 }
@@ -732,8 +743,8 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
         });
     });
 
-    if (container.dataset.estadoAtual === estadoAtualString && !bloqueiaAtualizacaoPorArrasto) {
-        const pct = calcularProgressos = calcularProgresso(alunoId, inst.topicos);
+    if (container.dataset.estadoAtual === estadoAtualString) {
+        const pct = calcularProgresso(alunoId, inst.topicos);
         if(barra) barra.style.width = pct + '%'; 
         if(texto) texto.innerText = pct + '%';
         return;
@@ -758,9 +769,7 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
             if(checked) span.className = 'concluido';
 
             if (!window.PAGINA_ALUNO) {
-                cb.addEventListener('change', async function() {
-                    bloqueiaAtualizacaoPorArrasto = true;
-
+                cb.addEventListener('change', function() {
                     progressoAlunos[chaveSalva] = this.checked;
                     span.className = this.checked ? 'concluido' : '';
                     
@@ -772,8 +781,6 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
                         `${chaveSalva}:${!this.checked}`, 
                         `${chaveSalva}:${this.checked}`
                     );
-
-                    await salvarNaNuvem();
                 });
             }
 
@@ -789,6 +796,11 @@ function renderizarCronogramaAlunoId(alunoId, container, barra, texto, tituloEle
 
 // Inicializador
 window.onload = async function() {
+    // Escuta de clique para o botão manual de Salvamento Global (Apenas se o elemento existir no HTML do Admin)
+    if (btnSalvarGeral) {
+        btnSalvarGeral.addEventListener('click', salvarNaNuvem);
+    }
+
     try {
         const resposta = await fetch(`${DB_URL}.json`);
         const dados = await resposta.json();
